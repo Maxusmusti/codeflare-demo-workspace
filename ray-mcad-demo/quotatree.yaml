@@ -1,0 +1,38 @@
+apiVersion: ibm.com/v1
+kind: QuotaSubtree
+metadata:
+  name: context-root
+  namespace: kube-system  # this is the namespace where the multi-cluster-app-dispatcher controller lives
+  labels:
+    tree: quota_context  # the tree to which all nodes defined in this QuotaSubtree object belong
+spec:
+  children:
+    - name: context-root
+      quotas:
+        hardLimit: true  # if context-root has siblings it cannot borrow from them
+        requests:
+          cpu: 4000m
+          memory: 16000Mi
+---
+apiVersion: ibm.com/v1
+kind: QuotaSubtree
+metadata:
+  name: context-root-children
+  namespace: kube-system
+  labels:
+    tree: quota_context  # note that this label is the same as above indicating they belong to the same tree
+spec:
+  parent: context-root
+  children:
+    - name: alpha
+      quotas:
+        hardLimit: false  # objects using 'alpha' can borrow resources from beta (this is the default value)
+        requests:
+          cpu: 2000m  # even though beta has 2000m 'alpha' will only be able to borrow 1000m due to the limit imposed by context root
+          memory: 8000Mi
+    - name: beta
+      quotas:
+        hardLimit: true  # objects using 'beta' cannot borrow extra resources from 'alpha'
+        requests:
+          cpu: 2000m
+          memory: 8000Mi
